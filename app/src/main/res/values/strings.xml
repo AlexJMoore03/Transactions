@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Transactions</string>
+    <string-array name="date_filter_array">
+        <item>This Week</item>
+        <item>This and Last Week</item>
+        <item>This Month</item>
+        <item>This and Last Month</item>
+    </string-array>
+    <string-array name="category_filter_array">
+        <item>All Categories</item>
+    </string-array>
+    <string-array name="account_filter_array">
+        <item>All Accounts</item>
+    </string-array>
+    <string-array name="empty_array">
+        <item></item>
+    </string-array>
+</resources>
