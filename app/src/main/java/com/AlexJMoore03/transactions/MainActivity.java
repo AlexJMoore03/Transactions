@@ -19,6 +19,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,13 +32,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private ArrayList<Transaction> transactionList;
     private ArrayList<Category> categoryList;
-    private ArrayList<Account> accountList;
-    private Date dateSetting;
+    private String dateSetting;
     private String categorySetting;
-    private String accountSetting;
     private Spinner dateFilterSpinner;
     private Spinner categoryFilterSpinner;
-    private Spinner accountFilterSpinner;
+    private static final DecimalFormat moneyFormat = new DecimalFormat("0.00");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,26 +45,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         dateFilterSpinner = (Spinner) findViewById(R.id.dateFilterSpinner);
         categoryFilterSpinner = (Spinner) findViewById(R.id.categoryFilterSpinner);
-        accountFilterSpinner = (Spinner) findViewById(R.id.accountFilterSpinner);
         transactionList = new ArrayList<>();
         categoryList = new ArrayList<>();
-        accountList = new ArrayList<>();
 
         //Uncomment to delete data on startup
         /*for (File child : this.getFilesDir().listFiles()) {
             child.delete();
         }*/
 
-        Account myAccount = new Account("myAccount");
-        accountList.add(myAccount);
-        //Temp Declarations
+        //Initialize for if data doesn't load
         if (!loadData()) {
             Category myCategory = new Category("Other");
             categoryList.add(myCategory);
+            dateSetting = "This Month";
+            categorySetting = "";
         }
-        dateSetting = new Date(70, 0, 1);
-        accountSetting = "";
-        categorySetting = "";
         loadTransactions();
     }
 
@@ -89,7 +83,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 transactionData.put("File Type", "Transaction Data");
                 transactionData.put("Name", transaction.getName());
                 transactionData.put("Category", transaction.getCategory().getName());
-                transactionData.put("Account", transaction.getAccount().getName());
                 transactionData.put("Amount", String.valueOf(transaction.getAmount()));
                 transactionData.put("Date", (transaction.getDate().getMonth() + 1) + "-" + transaction.getDate().getDate() + "-" + (transaction.getDate().getYear() + 1900));
             } catch (Exception e) {}
@@ -98,9 +91,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         JSONObject filterData = new JSONObject();
         try {
             filterData.put("File Type", "Filter Data");
-            filterData.put("Date Filter", (dateSetting.getMonth() + 1) + "-" + dateSetting.getDate() + "-" + (dateSetting.getYear() + 1900));
+            filterData.put("Date Filter", dateSetting);
             filterData.put("Category Filter", categorySetting);
-            filterData.put("Account Filter", accountSetting);
         } catch (Exception e) {
             Toast toast = Toast.makeText(this, "Error saving filter data",(short)3);
             toast.show();
@@ -161,16 +153,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     }
                     SimpleDateFormat format = new SimpleDateFormat("MM-dd-yyyy", Locale.ENGLISH);
                     Date transactionDate = format.parse(data.get("Date").toString());
-                    Transaction newTransaction = new Transaction(accountList.get(0), Double.valueOf(data.get("Amount").toString()), transactionDate, search, data.get("Name").toString());
+                    Transaction newTransaction = new Transaction(Double.valueOf(data.get("Amount").toString()), transactionDate, search, data.get("Name").toString());
                     transactionList.add(newTransaction);
                 } catch (Exception e) {
                 }
             }
             else {
-                SimpleDateFormat format = new SimpleDateFormat("MM-dd-yyyy", Locale.ENGLISH);
-                Date transactionDate = format.parse(data.get("Date Filter").toString());
-                dateSetting = transactionDate;
-                accountSetting = data.get("Account Filter").toString();
+                dateSetting = data.get("Date Filter").toString();
                 categorySetting = data.get("Category Filter").toString();
             }
         } catch (Exception e) {
@@ -186,27 +175,26 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     //Loads settings, saved transactions, and new transactions from Yodlee, then displays them in list according to settings
     public void loadTransactions() {
-        loadTransactions(dateSetting, accountSetting, categorySetting);
+        loadTransactions(dateSetting, categorySetting);
     }
-    public void loadTransactions(Date dateFilter, String accountFilter, String categoryFilter) {
+    public void loadTransactions(String dateFilter, String categoryFilter) {
         sortTransactions(transactionList);
         //Delete previous displays & display transactions
         TableLayout transactionLayout = (TableLayout) findViewById(R.id.transactionLayout);
         transactionLayout.removeAllViews();
+        for (int i = 0; i < categoryList.size(); i++) {
+            categoryList.get(i).setAmount(0);
+        }
+        Date beginning = filterToDate(dateFilter);
         for (int i = 0; i < transactionList.size(); i++) {
             boolean display = true;
-            if (dateFilter != null) {
-                if (transactionList.get(i).getDate().before(dateFilter)) {
+            if (beginning != null) {
+                if (transactionList.get(i).getDate().before(beginning)) {
                     display = false;
                 }
             }
             if (display && !categoryFilter.equals("")) {
                 if (transactionList.get(i).getCategory().getName() != categoryFilter) {
-                    display = false;
-                }
-            }
-            if (display && !accountFilter.equals("")) {
-                if (transactionList.get(i).getAccount().getName() != accountFilter) {
                     display = false;
                 }
             }
@@ -218,18 +206,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         loadCategories();
         for (int i = 0; i < transactionList.size(); i++) {
             boolean display = true;
-            if (dateFilter != null) {
-                if (transactionList.get(i).getDate().before(dateFilter)) {
+            if (beginning != null) {
+                if (transactionList.get(i).getDate().before(beginning)) {
                     display = false;
                 }
             }
             if (display && !categoryFilter.equals("")) {
                 if (transactionList.get(i).getCategory().getName() != categoryFilter) {
-                    display = false;
-                }
-            }
-            if (display && !accountFilter.equals("")) {
-                if (transactionList.get(i).getAccount().getName() != accountFilter) {
                     display = false;
                 }
             }
@@ -259,7 +242,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.date_filter_array, android.R.layout.simple_spinner_item);
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             dateFilterSpinner.setAdapter(adapter);
-            dateFilterSpinner.setSelection(0, false);
+            int dateFilterPosition = 0;
+            if (dateSetting.equals("This and Last Week")) {
+                dateFilterPosition = 1;
+            }
+            else if (dateSetting.equals("This Month")) {
+                dateFilterPosition = 2;
+            }
+            else if (dateSetting.equals("This and Last Month")) {
+                dateFilterPosition = 3;
+            }
+            dateFilterSpinner.setSelection(dateFilterPosition, false);
             dateFilterSpinner.setOnItemSelectedListener(this);
 
             ArrayList<String> adapterCategoryList = new ArrayList<>();
@@ -270,19 +263,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             ArrayAdapter<String> adapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, adapterCategoryList);
             adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             categoryFilterSpinner.setAdapter(adapter2);
-            categoryFilterSpinner.setSelection(0, false);
-            categoryFilterSpinner.setOnItemSelectedListener(this);
-
-            ArrayList<String> adapterAccountList = new ArrayList<>();
-            adapterAccountList.add("All Accounts");
-            for (int i = 0; i < accountList.size(); i++) {
-                adapterAccountList.add(accountList.get(i).getName());
+            if (adapter2.getPosition(categorySetting) == -1) {
+                categoryFilterSpinner.setSelection(0, false);
+                categorySetting = "";
             }
-            ArrayAdapter<String> adapter3 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, adapterAccountList);
-            adapter3.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            accountFilterSpinner.setAdapter(adapter3);
-            accountFilterSpinner.setSelection(0, false);
-            accountFilterSpinner.setOnItemSelectedListener(this);
+            else {
+                categoryFilterSpinner.setSelection(adapter2.getPosition(categorySetting), false);
+            }
+            categoryFilterSpinner.setOnItemSelectedListener(this);
         }
     }
 
@@ -316,16 +304,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         EditText transactionDateEdit = (EditText) findViewById(R.id.transactionDateEdit);
         transactionDateEdit.setText("");
 
-        ArrayList<String> adapterAccountList = new ArrayList<>();
-        for (int i = 0; i < accountList.size(); i++) {
-            adapterAccountList.add(accountList.get(i).getName());
-        }
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, adapterAccountList);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        Spinner transactionAccountSpinner = (Spinner) findViewById(R.id.transactionAccountSpinner);
-        transactionAccountSpinner.setAdapter(adapter);
-        transactionAccountSpinner.setSelection(0, false);
-        transactionAccountSpinner.setOnItemSelectedListener(this);
         ArrayList<String> adapterCategoryList = new ArrayList<>();
         for (int i = 0; i < categoryList.size(); i++) {
             adapterCategoryList.add(categoryList.get(i).getName());
@@ -357,7 +335,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) { }
             @Override
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                if (categoryNames.indexOf(categoryNameEdit.getText().toString()) >= 0 || categoryNameEdit.getText().toString().equals("Unnamed Category") || categoryNameEdit.getText().toString().equals("Enter Name") || categoryNameEdit.getText().toString().equals("")) {
+                if (categoryNames.indexOf(categoryNameEdit.getText().toString()) >= 0 || categoryNameEdit.getText().toString().equals("Unnamed Category") || categoryNameEdit.getText().toString().equals("Enter Name") || categoryNameEdit.getText().toString().equals("") || categoryNameEdit.getText().toString().equals("All Categories")) {
                     createCategoryButton.setText("Cancel");
                 }
                 else {
@@ -407,16 +385,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         EditText transactionDateEdit = (EditText) findViewById(R.id.editTransactionDateEdit);
         transactionDateEdit.setText((transaction.getDate().getMonth() + 1) + "-" + transaction.getDate().getDate() + "-" + (transaction.getDate().getYear() + 1900));
 
-        ArrayList<String> adapterAccountList = new ArrayList<>();
-        for (int i = 0; i < accountList.size(); i++) {
-            adapterAccountList.add(accountList.get(i).getName());
-        }
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, adapterAccountList);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        Spinner transactionAccountSpinner = (Spinner) findViewById(R.id.editTransactionAccountSpinner);
-        transactionAccountSpinner.setAdapter(adapter);
-        transactionAccountSpinner.setSelection(0, false);
-        transactionAccountSpinner.setOnItemSelectedListener(this);
         ArrayList<String> adapterCategoryList = new ArrayList<>();
         for (int i = 0; i < categoryList.size(); i++) {
             adapterCategoryList.add(categoryList.get(i).getName());
@@ -443,18 +411,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             EditText transactionNameEdit = (EditText) findViewById(R.id.transactionNameEdit);
             EditText transactionAmountEdit = (EditText) findViewById(R.id.transactionAmountEdit);
             EditText transactionDateEdit = (EditText) findViewById(R.id.transactionDateEdit);
-            Spinner transactionAccountSpinner = (Spinner) findViewById(R.id.transactionAccountSpinner);
             Spinner transactionCategorySpinner = (Spinner) findViewById(R.id.transactionCategorySpinner);
             SimpleDateFormat format = new SimpleDateFormat("MM-dd-yyyy", Locale.ENGLISH);
             try {
                 Date transactionDate = format.parse(transactionDateEdit.getText().toString());
-                Account transactionAccount = null;
-                for (int i = 0; i < accountList.size(); i++) {
-                    if (transactionAccountSpinner.getSelectedItem().toString().equals(accountList.get(i).getName())) {
-                        transactionAccount = accountList.get(i);
-                        break;
-                    }
-                }
                 Category transactionCategory = null;
                 for (int i = 0; i < categoryList.size(); i++) {
                     if (transactionCategorySpinner.getSelectedItem().toString().equals(categoryList.get(i).getName())) {
@@ -462,7 +422,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         break;
                     }
                 }
-                Transaction newTransaction = new Transaction(transactionAccount, Double.valueOf(transactionAmountEdit.getText().toString()), transactionDate, transactionCategory, transactionNameEdit.getText().toString());
+                Transaction newTransaction = new Transaction(Double.valueOf(transactionAmountEdit.getText().toString()), transactionDate, transactionCategory, transactionNameEdit.getText().toString());
                 transactionList.add(newTransaction);
                 saveData();
                 loadTransactions();
@@ -486,6 +446,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Category newCategory = new Category(categoryNameEdit.getText().toString());
             categoryList.add(newCategory);
             saveData();
+            loadTransactions();
             createCategoryLayout.setVisibility(View.INVISIBLE);
         }
     }
@@ -501,18 +462,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             EditText transactionNameEdit = (EditText) findViewById(R.id.editTransactionNameEdit);
             EditText transactionAmountEdit = (EditText) findViewById(R.id.editTransactionAmountEdit);
             EditText transactionDateEdit = (EditText) findViewById(R.id.editTransactionDateEdit);
-            Spinner transactionAccountSpinner = (Spinner) findViewById(R.id.editTransactionAccountSpinner);
             Spinner transactionCategorySpinner = (Spinner) findViewById(R.id.editTransactionCategorySpinner);
             SimpleDateFormat format = new SimpleDateFormat("MM-dd-yyyy", Locale.ENGLISH);
             try {
                 Date transactionDate = format.parse(transactionDateEdit.getText().toString());
-                Account transactionAccount = null;
-                for (int i = 0; i < accountList.size(); i++) {
-                    if (transactionAccountSpinner.getSelectedItem().toString().equals(accountList.get(i).getName())) {
-                        transactionAccount = accountList.get(i);
-                        break;
-                    }
-                }
                 Category transactionCategory = null;
                 for (int i = 0; i < categoryList.size(); i++) {
                     if (transactionCategorySpinner.getSelectedItem().toString().equals(categoryList.get(i).getName())) {
@@ -521,7 +474,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     }
                 }
                 Transaction transaction = (Transaction)(createButton.getTag());
-                transaction.setAccount(transactionAccount);
                 transaction.setAmount(Double.valueOf(transactionAmountEdit.getText().toString()));
                 transaction.setDate(transactionDate);
                 transaction.setCategory(transactionCategory);
@@ -575,10 +527,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         categoryAmountView.setTypeface(typeface);
         categoryAmountView.setMaxLines(1);
         if (category.getAmount() < 0) {
-            categoryAmountView.setText("-$" + (category.getAmount() * -1));
+            categoryAmountView.setText("-$" + moneyFormat.format((category.getAmount() * -1)));
         }
         else {
-            categoryAmountView.setText("$" + category.getAmount());
+            categoryAmountView.setText("$" + moneyFormat.format(category.getAmount()));
         }
         categoryAmountView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
         categoryAmountView.setTextColor(Color.WHITE);
@@ -639,10 +591,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         transactionAmountView.setTypeface(typeface2);
         transactionAmountView.setMaxLines(1);
         if (transaction.getAmount() < 0) {
-            transactionAmountView.setText("-$" + (transaction.getAmount() * -1));
+            transactionAmountView.setText("-$" + moneyFormat.format(transaction.getAmount() * -1));
         }
         else {
-            transactionAmountView.setText("$" + transaction.getAmount());
+            transactionAmountView.setText("$" + moneyFormat.format(transaction.getAmount()));
         }
         transactionAmountView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
         transactionAmountView.setTextColor(Color.WHITE);
@@ -679,53 +631,45 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             transactionDateView.setTextSize(20);
             row2.addView(transactionDateView);
         }
+    }
 
-        if (transaction.getAccount() != null) {
-            TextView transactionAccountView = new TextView(this);
-            transactionAccountView.setLayoutParams(transactionCategoryViewParams);
-            transactionAccountView.setTypeface(typeface2);
-            transactionAccountView.setMaxLines(1);
-            transactionAccountView.setText(transaction.getAccount().getName());
-            transactionAccountView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
-            transactionAccountView.setTextColor(Color.WHITE);
-            transactionAccountView.setTextSize(20);
-            transactionAccountView.setVisibility(View.INVISIBLE);
-            row2.addView(transactionAccountView);
+    //Converts the date filter setting to the beginning date
+    public Date filterToDate(String dateFilter) {
+        Calendar cal = Calendar.getInstance();
+        if (dateFilter.equals("This Week")) {
+            Date currentDate = new Date();
+            cal.setTime(currentDate);
+            cal.add(Calendar.DATE, -1 * currentDate.getDay());
         }
+        else if (dateFilter.equals("This and Last Week")) {
+            Date currentDate = new Date();
+            cal.setTime(currentDate);
+            cal.add(Calendar.DATE, -1 * (currentDate.getDay() + 7));
+        }
+        else if (dateFilter.equals("This Month")) {
+            Date currentDate = new Date();
+            cal.setTime(currentDate);
+            cal.add(Calendar.DATE, -1 * currentDate.getDate() + 1);
+        }
+        else {
+            Date currentDate = new Date();
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            cal.setTime(currentDate);
+            cal.add(Calendar.DATE, -1 * currentDate.getDate() + 1);
+        }
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal.getTime();
     }
 
     //Implements filter spinner selections
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         if (parent.getId() == R.id.dateFilterSpinner) {
-            Calendar cal = Calendar.getInstance();
-            if (parent.getItemAtPosition(position).toString().equals("This Week")) {
-                Date currentDate = new Date();
-                cal.setTime(currentDate);
-                cal.add(Calendar.DATE, -1 * currentDate.getDay());
-            }
-            else if (parent.getItemAtPosition(position).toString().equals("This and Last Week")) {
-                Date currentDate = new Date();
-                cal.setTime(currentDate);
-                cal.add(Calendar.DATE, -1 * (currentDate.getDay() + 7));
-            }
-            else if (parent.getItemAtPosition(position).toString().equals("This Month")) {
-                Date currentDate = new Date();
-                cal.setTime(currentDate);
-                cal.add(Calendar.DATE, -1 * currentDate.getDate() + 1);
-            }
-            else {
-                Date currentDate = new Date();
-                currentDate.setMonth(currentDate.getMonth() - 1);
-                cal.setTime(currentDate);
-                cal.add(Calendar.DATE, -1 * currentDate.getDate() + 1);
-            }
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            cal.set(Calendar.MILLISECOND, 0);
-            dateSetting = cal.getTime();
-            loadTransactions(dateSetting, accountSetting, categorySetting);
+            dateSetting = parent.getItemAtPosition(position).toString();
+            loadTransactions(dateSetting, categorySetting);
         }
         else if (parent.getId() == R.id.categoryFilterSpinner) {
             if (parent.getItemAtPosition(position).toString().equals("All Categories")) {
@@ -734,17 +678,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             else {
                 categorySetting = parent.getItemAtPosition(position).toString();
             }
-            loadTransactions(dateSetting, accountSetting, categorySetting);
+            loadTransactions(dateSetting, categorySetting);
         }
-        else if (parent.getId() == R.id.accountFilterSpinner) {
-            if (parent.getItemAtPosition(position).toString().equals("All Accounts")) {
-                accountSetting = "";
-            }
-            else {
-                accountSetting = parent.getItemAtPosition(position).toString();
-            }
-            loadTransactions(dateSetting, accountSetting, categorySetting);
-        }
+        saveData();
     }
     @Override
     public void onNothingSelected(AdapterView<?> parent) {}

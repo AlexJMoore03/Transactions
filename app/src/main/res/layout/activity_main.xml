@@ -117,18 +117,6 @@
                     android:textColor="@color/white"
                     android:textSize="20sp" />
 
-                <TextView
-                    android:id="@+id/transactionAccountViewA"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_column="1"
-                    android:layout_weight="1"
-                    android:fontFamily="sans-serif-light"
-                    android:maxLines="1"
-                    android:text="Test Account"
-                    android:textAlignment="viewStart"
-                    android:textColor="@color/white"
-                    android:textSize="20sp" />
             </TableRow>
 
         </TableLayout>
@@ -243,7 +231,8 @@
                     android:layout_marginEnd="8dp"
                     android:background="@android:drawable/spinner_dropdown_background"
                     android:entries="@android:array/postalAddressTypes"
-                    android:textAlignment="center" />
+                    android:textAlignment="center"
+                    android:textColor="@color/black" />
 
             </LinearLayout>
 
@@ -274,38 +263,8 @@
                     android:layout_marginEnd="8dp"
                     android:background="@android:drawable/spinner_dropdown_background"
                     android:entries="@android:array/postalAddressTypes"
-                    android:textAlignment="center" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/accountFilterLayout"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/accountFilterView"
-                    android:layout_width="192dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginTop="8dp"
-                    android:fontFamily="sans-serif-light"
-                    android:text="Account"
-                    android:textColor="@color/white"
-                    android:textColorHighlight="@android:color/transparent"
-                    android:textColorHint="@android:color/transparent"
-                    android:textSize="30sp" />
-
-                <Spinner
-                    android:id="@+id/accountFilterSpinner"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:background="@android:drawable/spinner_dropdown_background"
-                    android:entries="@android:array/postalAddressTypes"
-                    android:textAlignment="center" />
+                    android:textAlignment="center"
+                    android:textColor="@color/black" />
 
             </LinearLayout>
 
@@ -395,19 +354,6 @@
                     android:textSize="14sp" />
 
             </LinearLayout>
-
-            <TextView
-                android:id="@+id/accountCreateView"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="8dp"
-                android:fontFamily="sans-serif-light"
-                android:text="Account"
-                android:textColor="@color/white"
-                android:textColorHighlight="@android:color/transparent"
-                android:textColorHint="@android:color/transparent"
-                android:textSize="30sp" />
 
         </LinearLayout>
     </ScrollView>
@@ -511,34 +457,6 @@
             app:layout_constraintTop_toBottomOf="@id/editTransactionAmountView" />
 
         <TextView
-            android:id="@+id/editTransactionAccountView"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:fontFamily="sans-serif-light"
-            android:text="Account"
-            android:textAlignment="center"
-            android:textColor="@color/white"
-            android:textColorHighlight="@android:color/transparent"
-            android:textColorHint="@android:color/transparent"
-            android:textSize="30sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/editTransactionAmountEdit" />
-
-        <Spinner
-            android:id="@+id/editTransactionAccountSpinner"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="@android:drawable/spinner_dropdown_background"
-            android:entries="@android:array/postalAddressTypes"
-            android:textAlignment="center"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/editTransactionAccountView" />
-
-        <TextView
             android:id="@+id/editTransactionDateView"
             android:layout_width="match_parent"
             android:layout_height="48dp"
@@ -551,7 +469,7 @@
             android:textSize="30sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/editTransactionAccountSpinner" />
+            app:layout_constraintTop_toBottomOf="@+id/editTransactionAmountEdit" />
 
         <EditText
             android:id="@+id/editTransactionDateEdit"
@@ -563,7 +481,7 @@
             android:backgroundTint="#FFFFFF"
             android:ems="10"
             android:fontFamily="sans-serif-light"
-            android:inputType="date"
+            android:inputType="text"
             android:text="Enter Date"
             android:textAlignment="center"
             android:textColor="@color/white"
@@ -597,6 +515,7 @@
             android:background="@android:drawable/spinner_dropdown_background"
             android:entries="@android:array/postalAddressTypes"
             android:textAlignment="center"
+            android:textColor="@color/black"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/editTransactionCategoryView" />
@@ -814,34 +733,6 @@
             app:layout_constraintTop_toBottomOf="@+id/createTransactionAmountView" />
 
         <TextView
-            android:id="@+id/createTransactionAccountView"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:fontFamily="sans-serif-light"
-            android:text="Account"
-            android:textAlignment="center"
-            android:textColor="@color/white"
-            android:textColorHighlight="@android:color/transparent"
-            android:textColorHint="@android:color/transparent"
-            android:textSize="30sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/transactionAmountEdit" />
-
-        <Spinner
-            android:id="@+id/transactionAccountSpinner"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="@android:drawable/spinner_dropdown_background"
-            android:entries="@android:array/postalAddressTypes"
-            android:textAlignment="center"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/createTransactionAccountView" />
-
-        <TextView
             android:id="@+id/createTransactionDateView"
             android:layout_width="match_parent"
             android:layout_height="48dp"
@@ -854,7 +745,7 @@
             android:textSize="30sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/transactionAccountSpinner" />
+            app:layout_constraintTop_toBottomOf="@+id/transactionAmountEdit" />
 
         <EditText
             android:id="@+id/transactionDateEdit"
@@ -866,7 +757,7 @@
             android:backgroundTint="#FFFFFF"
             android:ems="10"
             android:fontFamily="sans-serif-light"
-            android:inputType="date"
+            android:inputType="text"
             android:text="Enter Date"
             android:textAlignment="center"
             android:textColor="@color/white"
@@ -900,6 +791,7 @@
             android:background="@android:drawable/spinner_dropdown_background"
             android:entries="@android:array/postalAddressTypes"
             android:textAlignment="center"
+            android:textColor="@color/black"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/createTransactionCategoryView" />
