@@ -38,6 +38,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private Spinner categoryFilterSpinner;
     private static final DecimalFormat moneyFormat = new DecimalFormat("0.00");
 
+    /*
+        Activity Functions
+     */
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,6 +66,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
         loadTransactions();
     }
+
+    /*
+        File Saving/Loading
+     */
 
     //Saves transactions, filters, categories, etc. to JSON
     public void saveData() {
@@ -166,6 +174,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
+    /*
+        Transaction/Category Behaviour
+     */
+
     //Loads categories and displays the total spent on each one
     public void loadCategories() {
         for (int i = 0; i < categoryList.size(); i++) {
@@ -222,10 +234,105 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
-    //Sorts transactions by date
-    public void sortTransactions(ArrayList<Transaction> listToSort) {
-        Collections.sort(listToSort);
+    //Creates a transaction
+    public void createTransaction(View view) {
+        Button createButton = (Button) view;
+        ConstraintLayout createTransactionLayout = (ConstraintLayout) findViewById(R.id.createTransactionLayout);
+        if (createButton.getText().equals("Cancel")) {
+            createTransactionLayout.setVisibility(View.INVISIBLE);
+        }
+        else {
+            EditText transactionNameEdit = (EditText) findViewById(R.id.transactionNameEdit);
+            EditText transactionAmountEdit = (EditText) findViewById(R.id.transactionAmountEdit);
+            EditText transactionDateEdit = (EditText) findViewById(R.id.transactionDateEdit);
+            Spinner transactionCategorySpinner = (Spinner) findViewById(R.id.transactionCategorySpinner);
+            SimpleDateFormat format = new SimpleDateFormat("MM-dd-yyyy", Locale.ENGLISH);
+            try {
+                Date transactionDate = format.parse(transactionDateEdit.getText().toString());
+                Category transactionCategory = null;
+                for (int i = 0; i < categoryList.size(); i++) {
+                    if (transactionCategorySpinner.getSelectedItem().toString().equals(categoryList.get(i).getName())) {
+                        transactionCategory = categoryList.get(i);
+                        break;
+                    }
+                }
+                Transaction newTransaction = new Transaction(Double.valueOf(transactionAmountEdit.getText().toString()), transactionDate, transactionCategory, transactionNameEdit.getText().toString());
+                transactionList.add(newTransaction);
+                saveData();
+                loadTransactions();
+                createTransactionLayout.setVisibility(View.INVISIBLE);
+            } catch(Exception e){
+                Toast toast = Toast.makeText(this, "Invalid Entries", (short)3);
+                toast.show();
+            }
+        }
     }
+
+    //Creates a category
+    public void createCategory(View view) {
+        Button createButton = (Button) view;
+        ConstraintLayout createCategoryLayout = (ConstraintLayout) findViewById(R.id.createCategoryLayout);
+        if (createButton.getText().equals("Cancel")) {
+            createCategoryLayout.setVisibility(View.INVISIBLE);
+        }
+        else {
+            EditText categoryNameEdit = (EditText) findViewById(R.id.categoryNameEdit);
+            Category newCategory = new Category(categoryNameEdit.getText().toString());
+            categoryList.add(newCategory);
+            saveData();
+            loadTransactions();
+            createCategoryLayout.setVisibility(View.INVISIBLE);
+        }
+    }
+
+    //Edits a transaction
+    public void editTransaction(View view) {
+        Button createButton = (Button) view;
+        ConstraintLayout createTransactionLayout = (ConstraintLayout) findViewById(R.id.editTransactionLayout);
+        if (createButton.getText().equals("Cancel")) {
+            createTransactionLayout.setVisibility(View.INVISIBLE);
+        }
+        else {
+            EditText transactionNameEdit = (EditText) findViewById(R.id.editTransactionNameEdit);
+            EditText transactionAmountEdit = (EditText) findViewById(R.id.editTransactionAmountEdit);
+            EditText transactionDateEdit = (EditText) findViewById(R.id.editTransactionDateEdit);
+            Spinner transactionCategorySpinner = (Spinner) findViewById(R.id.editTransactionCategorySpinner);
+            SimpleDateFormat format = new SimpleDateFormat("MM-dd-yyyy", Locale.ENGLISH);
+            try {
+                Date transactionDate = format.parse(transactionDateEdit.getText().toString());
+                Category transactionCategory = null;
+                for (int i = 0; i < categoryList.size(); i++) {
+                    if (transactionCategorySpinner.getSelectedItem().toString().equals(categoryList.get(i).getName())) {
+                        transactionCategory = categoryList.get(i);
+                        break;
+                    }
+                }
+                Transaction transaction = (Transaction)(createButton.getTag());
+                transaction.setAmount(Double.valueOf(transactionAmountEdit.getText().toString()));
+                transaction.setDate(transactionDate);
+                transaction.setCategory(transactionCategory);
+                transaction.setName(transactionNameEdit.getText().toString());
+                saveData();
+                loadTransactions();
+                createTransactionLayout.setVisibility(View.INVISIBLE);
+            } catch(Exception e){
+                Toast toast = Toast.makeText(this, "Invalid Entries", (short)3);
+                toast.show();
+            }
+        }
+    }
+
+    //Deletes a transaction
+    public void deleteTransaction(View view) {
+        transactionList.remove(view.getTag());
+        ConstraintLayout editTransactionLayout = (ConstraintLayout) findViewById(R.id.editTransactionLayout);
+        editTransactionLayout.setVisibility(View.INVISIBLE);
+        loadTransactions();
+    }
+
+    /*
+        UI Handling
+     */
 
     //Toggles the settings menu and initializes views
     public void toggleSettings(View view) {
@@ -400,102 +507,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         newTransactionLayout.setVisibility(View.VISIBLE);
     }
 
-    //Creates a transaction
-    public void createTransaction(View view) {
-        Button createButton = (Button) view;
-        ConstraintLayout createTransactionLayout = (ConstraintLayout) findViewById(R.id.createTransactionLayout);
-        if (createButton.getText().equals("Cancel")) {
-            createTransactionLayout.setVisibility(View.INVISIBLE);
-        }
-        else {
-            EditText transactionNameEdit = (EditText) findViewById(R.id.transactionNameEdit);
-            EditText transactionAmountEdit = (EditText) findViewById(R.id.transactionAmountEdit);
-            EditText transactionDateEdit = (EditText) findViewById(R.id.transactionDateEdit);
-            Spinner transactionCategorySpinner = (Spinner) findViewById(R.id.transactionCategorySpinner);
-            SimpleDateFormat format = new SimpleDateFormat("MM-dd-yyyy", Locale.ENGLISH);
-            try {
-                Date transactionDate = format.parse(transactionDateEdit.getText().toString());
-                Category transactionCategory = null;
-                for (int i = 0; i < categoryList.size(); i++) {
-                    if (transactionCategorySpinner.getSelectedItem().toString().equals(categoryList.get(i).getName())) {
-                        transactionCategory = categoryList.get(i);
-                        break;
-                    }
-                }
-                Transaction newTransaction = new Transaction(Double.valueOf(transactionAmountEdit.getText().toString()), transactionDate, transactionCategory, transactionNameEdit.getText().toString());
-                transactionList.add(newTransaction);
-                saveData();
-                loadTransactions();
-                createTransactionLayout.setVisibility(View.INVISIBLE);
-            } catch(Exception e){
-                Toast toast = Toast.makeText(this, "Invalid Entries", (short)3);
-                toast.show();
-            }
-        }
-    }
-
-    //Creates a category
-    public void createCategory(View view) {
-        Button createButton = (Button) view;
-        ConstraintLayout createCategoryLayout = (ConstraintLayout) findViewById(R.id.createCategoryLayout);
-        if (createButton.getText().equals("Cancel")) {
-            createCategoryLayout.setVisibility(View.INVISIBLE);
-        }
-        else {
-            EditText categoryNameEdit = (EditText) findViewById(R.id.categoryNameEdit);
-            Category newCategory = new Category(categoryNameEdit.getText().toString());
-            categoryList.add(newCategory);
-            saveData();
-            loadTransactions();
-            createCategoryLayout.setVisibility(View.INVISIBLE);
-        }
-    }
-
-    //Edits a transaction
-    public void editTransaction(View view) {
-        Button createButton = (Button) view;
-        ConstraintLayout createTransactionLayout = (ConstraintLayout) findViewById(R.id.editTransactionLayout);
-        if (createButton.getText().equals("Cancel")) {
-            createTransactionLayout.setVisibility(View.INVISIBLE);
-        }
-        else {
-            EditText transactionNameEdit = (EditText) findViewById(R.id.editTransactionNameEdit);
-            EditText transactionAmountEdit = (EditText) findViewById(R.id.editTransactionAmountEdit);
-            EditText transactionDateEdit = (EditText) findViewById(R.id.editTransactionDateEdit);
-            Spinner transactionCategorySpinner = (Spinner) findViewById(R.id.editTransactionCategorySpinner);
-            SimpleDateFormat format = new SimpleDateFormat("MM-dd-yyyy", Locale.ENGLISH);
-            try {
-                Date transactionDate = format.parse(transactionDateEdit.getText().toString());
-                Category transactionCategory = null;
-                for (int i = 0; i < categoryList.size(); i++) {
-                    if (transactionCategorySpinner.getSelectedItem().toString().equals(categoryList.get(i).getName())) {
-                        transactionCategory = categoryList.get(i);
-                        break;
-                    }
-                }
-                Transaction transaction = (Transaction)(createButton.getTag());
-                transaction.setAmount(Double.valueOf(transactionAmountEdit.getText().toString()));
-                transaction.setDate(transactionDate);
-                transaction.setCategory(transactionCategory);
-                transaction.setName(transactionNameEdit.getText().toString());
-                saveData();
-                loadTransactions();
-                createTransactionLayout.setVisibility(View.INVISIBLE);
-            } catch(Exception e){
-                Toast toast = Toast.makeText(this, "Invalid Entries", (short)3);
-                toast.show();
-            }
-        }
-    }
-
-    //Deletes a transaction
-    public void deleteTransaction(View view) {
-        transactionList.remove(view.getTag());
-        ConstraintLayout editTransactionLayout = (ConstraintLayout) findViewById(R.id.editTransactionLayout);
-        editTransactionLayout.setVisibility(View.INVISIBLE);
-        loadTransactions();
-    }
-
     //Adds the category to the displayed list
     public void displayCategory(Category category) {
         TableLayout transactionLayout = (TableLayout) findViewById(R.id.transactionLayout);
@@ -633,6 +644,36 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
+    //Implements filter spinner selections
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        if (parent.getId() == R.id.dateFilterSpinner) {
+            dateSetting = parent.getItemAtPosition(position).toString();
+            loadTransactions(dateSetting, categorySetting);
+        }
+        else if (parent.getId() == R.id.categoryFilterSpinner) {
+            if (parent.getItemAtPosition(position).toString().equals("All Categories")) {
+                categorySetting = "";
+            }
+            else {
+                categorySetting = parent.getItemAtPosition(position).toString();
+            }
+            loadTransactions(dateSetting, categorySetting);
+        }
+        saveData();
+    }
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {}
+
+    /*
+        Utility Functions
+     */
+
+    //Sorts transactions by date
+    public void sortTransactions(ArrayList<Transaction> listToSort) {
+        Collections.sort(listToSort);
+    }
+
     //Converts the date filter setting to the beginning date
     public Date filterToDate(String dateFilter) {
         Calendar cal = Calendar.getInstance();
@@ -663,25 +704,4 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         cal.set(Calendar.MILLISECOND, 0);
         return cal.getTime();
     }
-
-    //Implements filter spinner selections
-    @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        if (parent.getId() == R.id.dateFilterSpinner) {
-            dateSetting = parent.getItemAtPosition(position).toString();
-            loadTransactions(dateSetting, categorySetting);
-        }
-        else if (parent.getId() == R.id.categoryFilterSpinner) {
-            if (parent.getItemAtPosition(position).toString().equals("All Categories")) {
-                categorySetting = "";
-            }
-            else {
-                categorySetting = parent.getItemAtPosition(position).toString();
-            }
-            loadTransactions(dateSetting, categorySetting);
-        }
-        saveData();
-    }
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {}
 }
