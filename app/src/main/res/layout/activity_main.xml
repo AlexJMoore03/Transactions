@@ -8,7 +8,7 @@
     android:background="#202225"
     android:backgroundTint="#202225"
     android:visibility="visible"
-    tools:context=".MainActivity"
+    tools:context=".ui.MainActivity"
     tools:visibility="visible">
 
     <ImageView

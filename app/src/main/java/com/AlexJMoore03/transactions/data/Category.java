@@ -1,4 +1,4 @@
-package com.AlexJMoore03.transactions;
+package com.AlexJMoore03.transactions.data;
 
 public class Category {
     private String name;

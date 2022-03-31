@@ -1,7 +1,8 @@
-package com.AlexJMoore03.transactions;
+package com.AlexJMoore03.transactions.ui;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -12,34 +13,27 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
 
-import org.json.JSONObject;
+import com.AlexJMoore03.transactions.R;
+import com.AlexJMoore03.transactions.data.Category;
+import com.AlexJMoore03.transactions.data.Transaction;
+import com.AlexJMoore03.transactions.util.FileHandler;
+import com.AlexJMoore03.transactions.util.Utilities;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
-    private ArrayList<Transaction> transactionList;
-    private ArrayList<Category> categoryList;
-    private String dateSetting;
-    private String categorySetting;
     private Spinner dateFilterSpinner;
     private Spinner categoryFilterSpinner;
     private static final DecimalFormat moneyFormat = new DecimalFormat("0.00");
+    MainViewModel model;
 
     /*
-        Activity Functions
+        Activity
      */
 
     @Override
@@ -49,8 +43,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         dateFilterSpinner = (Spinner) findViewById(R.id.dateFilterSpinner);
         categoryFilterSpinner = (Spinner) findViewById(R.id.categoryFilterSpinner);
-        transactionList = new ArrayList<>();
-        categoryList = new ArrayList<>();
+        MainViewModel.transactionList = new ArrayList<>();
+        MainViewModel.categoryList = new ArrayList<>();
 
         //Uncomment to delete data on startup
         /*for (File child : this.getFilesDir().listFiles()) {
@@ -58,181 +52,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }*/
 
         //Initialize for if data doesn't load
-        if (!loadData()) {
+        if (!FileHandler.loadData(this)) {
             Category myCategory = new Category("Other");
-            categoryList.add(myCategory);
-            dateSetting = "This Month";
-            categorySetting = "";
+            MainViewModel.categoryList.add(myCategory);
+            MainViewModel.dateSetting = "This Month";
+            MainViewModel.categorySetting = "";
         }
-        loadTransactions();
-    }
 
-    /*
-        File Saving/Loading
-     */
-
-    //Saves transactions, filters, categories, etc. to JSON
-    public void saveData() {
-        for (File child : this.getFilesDir().listFiles()) {
-            child.delete();
-        }
-        ArrayList<JSONObject> data = new ArrayList<>();
-        for (Category category : categoryList) {
-            JSONObject categoryData = new JSONObject();
-            try {
-                categoryData.put("File Type", "Category Data");
-                categoryData.put("Name", category.getName());
-            } catch (Exception e) {}
-            data.add(categoryData);
-        }
-        for (Transaction transaction : transactionList) {
-            JSONObject transactionData = new JSONObject();
-            try {
-                transactionData.put("File Type", "Transaction Data");
-                transactionData.put("Name", transaction.getName());
-                transactionData.put("Category", transaction.getCategory().getName());
-                transactionData.put("Amount", String.valueOf(transaction.getAmount()));
-                transactionData.put("Date", (transaction.getDate().getMonth() + 1) + "-" + transaction.getDate().getDate() + "-" + (transaction.getDate().getYear() + 1900));
-            } catch (Exception e) {}
-            data.add(transactionData);
-        }
-        JSONObject filterData = new JSONObject();
-        try {
-            filterData.put("File Type", "Filter Data");
-            filterData.put("Date Filter", dateSetting);
-            filterData.put("Category Filter", categorySetting);
-        } catch (Exception e) {
-            Toast toast = Toast.makeText(this, "Error saving filter data",(short)3);
-            toast.show();
-        }
-        data.add(filterData);
-        for (int i = 0; i < data.size(); i++) {
-            try {
-                File file = new File(this.getFilesDir(),"file" + i);
-                FileWriter fileWriter = new FileWriter(file);
-                BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-                bufferedWriter.write(data.get(i).toString());
-                bufferedWriter.close();
-            } catch (Exception e) {}
-        }
-    }
-
-    //Loads transactions, filters, categories, etc. Returns false if there is no data to load
-    public boolean loadData() {
-        int i = 0;
-        File file = new File(this.getFilesDir(),"file" + i);
-        if (!file.exists()) {
-            return false;
-        }
-        while (file.exists()) {
-            try {
-                FileReader fileReader = new FileReader(file);
-                BufferedReader bufferedReader = new BufferedReader(fileReader);
-                StringBuilder stringBuilder = new StringBuilder();
-                String line = bufferedReader.readLine();
-                while (line != null) {
-                    stringBuilder.append(line).append("\n");
-                    line = bufferedReader.readLine();
-                }
-                bufferedReader.close();
-                readFile(new JSONObject(stringBuilder.toString()));
-            } catch (Exception e) {}
-            i++;
-            file = new File(this.getFilesDir(), "file" + i);
-        }
-        return true;
-    }
-
-    //Reads file data and determines what to do
-    public void readFile(JSONObject data) {
-        try {
-            if (data.get("File Type").equals("Category Data")) {
-                Category newCategory = new Category(data.get("Name").toString());
-                categoryList.add(newCategory);
-            }
-            else if (data.get("File Type").equals("Transaction Data")) {
-                try {
-                    Category search = new Category("");
-                    for (Category c : categoryList) {
-                        if (c.getName().equals(data.get("Category").toString())) {
-                            search = c;
-                            break;
-                        }
-                    }
-                    SimpleDateFormat format = new SimpleDateFormat("MM-dd-yyyy", Locale.ENGLISH);
-                    Date transactionDate = format.parse(data.get("Date").toString());
-                    Transaction newTransaction = new Transaction(Double.valueOf(data.get("Amount").toString()), transactionDate, search, data.get("Name").toString());
-                    transactionList.add(newTransaction);
-                } catch (Exception e) {
-                }
-            }
-            else {
-                dateSetting = data.get("Date Filter").toString();
-                categorySetting = data.get("Category Filter").toString();
-            }
-        } catch (Exception e) {
-        }
+        model = new ViewModelProvider(this).get(MainViewModel.class);
+        model.mainActivity = this;
+        model.loadTransactions();
     }
 
     /*
         Transaction/Category Behaviour
      */
-
-    //Loads categories and displays the total spent on each one
-    public void loadCategories() {
-        for (int i = 0; i < categoryList.size(); i++) {
-            displayCategory(categoryList.get(i));
-        }
-    }
-
-    //Loads settings, saved transactions, and new transactions from Yodlee, then displays them in list according to settings
-    public void loadTransactions() {
-        loadTransactions(dateSetting, categorySetting);
-    }
-    public void loadTransactions(String dateFilter, String categoryFilter) {
-        sortTransactions(transactionList);
-        //Delete previous displays & display transactions
-        TableLayout transactionLayout = (TableLayout) findViewById(R.id.transactionLayout);
-        transactionLayout.removeAllViews();
-        for (int i = 0; i < categoryList.size(); i++) {
-            categoryList.get(i).setAmount(0);
-        }
-        Date beginning = filterToDate(dateFilter);
-        for (int i = 0; i < transactionList.size(); i++) {
-            boolean display = true;
-            if (beginning != null) {
-                if (transactionList.get(i).getDate().before(beginning)) {
-                    display = false;
-                }
-            }
-            if (display && !categoryFilter.equals("")) {
-                if (transactionList.get(i).getCategory().getName() != categoryFilter) {
-                    display = false;
-                }
-            }
-            if (display) {
-                Category tCat = transactionList.get(i).getCategory();
-                tCat.setAmount(tCat.getAmount() + transactionList.get(i).getAmount());
-            }
-        }
-        loadCategories();
-        for (int i = 0; i < transactionList.size(); i++) {
-            boolean display = true;
-            if (beginning != null) {
-                if (transactionList.get(i).getDate().before(beginning)) {
-                    display = false;
-                }
-            }
-            if (display && !categoryFilter.equals("")) {
-                if (transactionList.get(i).getCategory().getName() != categoryFilter) {
-                    display = false;
-                }
-            }
-            if (display) {
-                displayTransaction(transactionList.get(i));
-            }
-        }
-    }
 
     //Creates a transaction
     public void createTransaction(View view) {
@@ -250,16 +84,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             try {
                 Date transactionDate = format.parse(transactionDateEdit.getText().toString());
                 Category transactionCategory = null;
-                for (int i = 0; i < categoryList.size(); i++) {
-                    if (transactionCategorySpinner.getSelectedItem().toString().equals(categoryList.get(i).getName())) {
-                        transactionCategory = categoryList.get(i);
+                for (int i = 0; i < MainViewModel.categoryList.size(); i++) {
+                    if (transactionCategorySpinner.getSelectedItem().toString().equals(MainViewModel.categoryList.get(i).getName())) {
+                        transactionCategory = MainViewModel.categoryList.get(i);
                         break;
                     }
                 }
                 Transaction newTransaction = new Transaction(Double.valueOf(transactionAmountEdit.getText().toString()), transactionDate, transactionCategory, transactionNameEdit.getText().toString());
-                transactionList.add(newTransaction);
-                saveData();
-                loadTransactions();
+                MainViewModel.transactionList.add(newTransaction);
+                FileHandler.saveData(this);
+                model.loadTransactions();
                 createTransactionLayout.setVisibility(View.INVISIBLE);
             } catch(Exception e){
                 Toast toast = Toast.makeText(this, "Invalid Entries", (short)3);
@@ -278,9 +112,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         else {
             EditText categoryNameEdit = (EditText) findViewById(R.id.categoryNameEdit);
             Category newCategory = new Category(categoryNameEdit.getText().toString());
-            categoryList.add(newCategory);
-            saveData();
-            loadTransactions();
+            MainViewModel.categoryList.add(newCategory);
+            FileHandler.saveData(this);
+            model.loadTransactions();
             createCategoryLayout.setVisibility(View.INVISIBLE);
         }
     }
@@ -301,9 +135,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             try {
                 Date transactionDate = format.parse(transactionDateEdit.getText().toString());
                 Category transactionCategory = null;
-                for (int i = 0; i < categoryList.size(); i++) {
-                    if (transactionCategorySpinner.getSelectedItem().toString().equals(categoryList.get(i).getName())) {
-                        transactionCategory = categoryList.get(i);
+                for (int i = 0; i < MainViewModel.categoryList.size(); i++) {
+                    if (transactionCategorySpinner.getSelectedItem().toString().equals(MainViewModel.categoryList.get(i).getName())) {
+                        transactionCategory = MainViewModel.categoryList.get(i);
                         break;
                     }
                 }
@@ -312,8 +146,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 transaction.setDate(transactionDate);
                 transaction.setCategory(transactionCategory);
                 transaction.setName(transactionNameEdit.getText().toString());
-                saveData();
-                loadTransactions();
+                FileHandler.saveData(this);
+                model.loadTransactions();
                 createTransactionLayout.setVisibility(View.INVISIBLE);
             } catch(Exception e){
                 Toast toast = Toast.makeText(this, "Invalid Entries", (short)3);
@@ -324,15 +158,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     //Deletes a transaction
     public void deleteTransaction(View view) {
-        transactionList.remove(view.getTag());
+        MainViewModel.transactionList.remove(view.getTag());
         ConstraintLayout editTransactionLayout = (ConstraintLayout) findViewById(R.id.editTransactionLayout);
         editTransactionLayout.setVisibility(View.INVISIBLE);
-        loadTransactions();
+        model.loadTransactions();
     }
 
     /*
         UI Handling
      */
+
+    //Empties the transactions box
+    public void emptyTransactionDisplay() {
+        TableLayout transactionLayout = (TableLayout) findViewById(R.id.transactionLayout);
+        transactionLayout.removeAllViews();
+    }
 
     //Toggles the settings menu and initializes views
     public void toggleSettings(View view) {
@@ -350,13 +190,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             dateFilterSpinner.setAdapter(adapter);
             int dateFilterPosition = 0;
-            if (dateSetting.equals("This and Last Week")) {
+            if (MainViewModel.dateSetting.equals("This and Last Week")) {
                 dateFilterPosition = 1;
             }
-            else if (dateSetting.equals("This Month")) {
+            else if (MainViewModel.dateSetting.equals("This Month")) {
                 dateFilterPosition = 2;
             }
-            else if (dateSetting.equals("This and Last Month")) {
+            else if (MainViewModel.dateSetting.equals("This and Last Month")) {
                 dateFilterPosition = 3;
             }
             dateFilterSpinner.setSelection(dateFilterPosition, false);
@@ -364,18 +204,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             ArrayList<String> adapterCategoryList = new ArrayList<>();
             adapterCategoryList.add("All Categories");
-            for (int i = 0; i < categoryList.size(); i++) {
-                adapterCategoryList.add(categoryList.get(i).getName());
+            for (int i = 0; i < MainViewModel.categoryList.size(); i++) {
+                adapterCategoryList.add(MainViewModel.categoryList.get(i).getName());
             }
             ArrayAdapter<String> adapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, adapterCategoryList);
             adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             categoryFilterSpinner.setAdapter(adapter2);
-            if (adapter2.getPosition(categorySetting) == -1) {
+            if (adapter2.getPosition(MainViewModel.categorySetting) == -1) {
                 categoryFilterSpinner.setSelection(0, false);
-                categorySetting = "";
+                MainViewModel.categorySetting = "";
             }
             else {
-                categoryFilterSpinner.setSelection(adapter2.getPosition(categorySetting), false);
+                categoryFilterSpinner.setSelection(adapter2.getPosition(MainViewModel.categorySetting), false);
             }
             categoryFilterSpinner.setOnItemSelectedListener(this);
         }
@@ -412,8 +252,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         transactionDateEdit.setText("");
 
         ArrayList<String> adapterCategoryList = new ArrayList<>();
-        for (int i = 0; i < categoryList.size(); i++) {
-            adapterCategoryList.add(categoryList.get(i).getName());
+        for (int i = 0; i < MainViewModel.categoryList.size(); i++) {
+            adapterCategoryList.add(MainViewModel.categoryList.get(i).getName());
         }
         ArrayAdapter<String> adapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, adapterCategoryList);
         adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -434,7 +274,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         categoryNameEdit.setText("Enter Name");
         createCategoryButton.setText("Cancel");
         ArrayList<String> categoryNames = new ArrayList<>();
-        for (Category c : categoryList) {
+        for (Category c : MainViewModel.categoryList) {
             categoryNames.add(c.getName());
         }
         TextWatcher categoryNameWatcher = new TextWatcher() {
@@ -493,8 +333,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         transactionDateEdit.setText((transaction.getDate().getMonth() + 1) + "-" + transaction.getDate().getDate() + "-" + (transaction.getDate().getYear() + 1900));
 
         ArrayList<String> adapterCategoryList = new ArrayList<>();
-        for (int i = 0; i < categoryList.size(); i++) {
-            adapterCategoryList.add(categoryList.get(i).getName());
+        for (int i = 0; i < MainViewModel.categoryList.size(); i++) {
+            adapterCategoryList.add(MainViewModel.categoryList.get(i).getName());
         }
         ArrayAdapter<String> adapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, adapterCategoryList);
         adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -648,60 +488,20 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         if (parent.getId() == R.id.dateFilterSpinner) {
-            dateSetting = parent.getItemAtPosition(position).toString();
-            loadTransactions(dateSetting, categorySetting);
+            MainViewModel.dateSetting = parent.getItemAtPosition(position).toString();
+            model.loadTransactions(MainViewModel.dateSetting, MainViewModel.categorySetting);
         }
         else if (parent.getId() == R.id.categoryFilterSpinner) {
             if (parent.getItemAtPosition(position).toString().equals("All Categories")) {
-                categorySetting = "";
+                MainViewModel.categorySetting = "";
             }
             else {
-                categorySetting = parent.getItemAtPosition(position).toString();
+                MainViewModel.categorySetting = parent.getItemAtPosition(position).toString();
             }
-            loadTransactions(dateSetting, categorySetting);
+            model.loadTransactions(MainViewModel.dateSetting, MainViewModel.categorySetting);
         }
-        saveData();
+        FileHandler.saveData(this);
     }
     @Override
     public void onNothingSelected(AdapterView<?> parent) {}
-
-    /*
-        Utility Functions
-     */
-
-    //Sorts transactions by date
-    public void sortTransactions(ArrayList<Transaction> listToSort) {
-        Collections.sort(listToSort);
-    }
-
-    //Converts the date filter setting to the beginning date
-    public Date filterToDate(String dateFilter) {
-        Calendar cal = Calendar.getInstance();
-        if (dateFilter.equals("This Week")) {
-            Date currentDate = new Date();
-            cal.setTime(currentDate);
-            cal.add(Calendar.DATE, -1 * currentDate.getDay());
-        }
-        else if (dateFilter.equals("This and Last Week")) {
-            Date currentDate = new Date();
-            cal.setTime(currentDate);
-            cal.add(Calendar.DATE, -1 * (currentDate.getDay() + 7));
-        }
-        else if (dateFilter.equals("This Month")) {
-            Date currentDate = new Date();
-            cal.setTime(currentDate);
-            cal.add(Calendar.DATE, -1 * currentDate.getDate() + 1);
-        }
-        else {
-            Date currentDate = new Date();
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            cal.setTime(currentDate);
-            cal.add(Calendar.DATE, -1 * currentDate.getDate() + 1);
-        }
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-        return cal.getTime();
-    }
 }

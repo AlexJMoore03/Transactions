@@ -1,6 +1,5 @@
-package com.AlexJMoore03.transactions;
+package com.AlexJMoore03.transactions.data;
 
-import java.util.Comparator;
 import java.util.Date;
 
 public class Transaction implements Comparable<Transaction> {
