@@ -1,5 +1,6 @@
 package com.AlexJMoore03.transactions.util;
 
+import android.app.Activity;
 import android.content.Context;
 import android.widget.Toast;
 
@@ -32,6 +33,7 @@ public class FileHandler {
             try {
                 categoryData.put("File Type", "Category Data");
                 categoryData.put("Name", category.getName());
+                categoryData.put("Budget", category.getBudget());
             } catch (Exception e) {}
             data.add(categoryData);
         }
@@ -97,12 +99,12 @@ public class FileHandler {
     public static void readFile(JSONObject data) {
         try {
             if (data.get("File Type").equals("Category Data")) {
-                Category newCategory = new Category(data.get("Name").toString());
+                Category newCategory = new Category(data.get("Name").toString(), Double.valueOf(data.get("Budget").toString()));
                 MainViewModel.categoryList.add(newCategory);
             }
             else if (data.get("File Type").equals("Transaction Data")) {
                 try {
-                    Category search = new Category("");
+                    Category search = new Category("", 0);
                     for (Category c : MainViewModel.categoryList) {
                         if (c.getName().equals(data.get("Category").toString())) {
                             search = c;
@@ -121,6 +123,12 @@ public class FileHandler {
                 MainViewModel.categorySetting = data.get("Category Filter").toString();
             }
         } catch (Exception e) {
+        }
+    }
+
+    public static void deleteData(Context context) {
+        for (File child : context.getFilesDir().listFiles()) {
+            child.delete();
         }
     }
 }

@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private Spinner dateFilterSpinner;
     private Spinner categoryFilterSpinner;
     private static final DecimalFormat moneyFormat = new DecimalFormat("0.00");
-    MainViewModel model;
+    public MainViewModel model;
 
     /*
         Activity
@@ -41,26 +41,25 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        dateFilterSpinner = (Spinner) findViewById(R.id.dateFilterSpinner);
-        categoryFilterSpinner = (Spinner) findViewById(R.id.categoryFilterSpinner);
-        MainViewModel.transactionList = new ArrayList<>();
-        MainViewModel.categoryList = new ArrayList<>();
-
-        //Uncomment to delete data on startup
-        /*for (File child : this.getFilesDir().listFiles()) {
-            child.delete();
-        }*/
-
-        //Initialize for if data doesn't load
-        if (!FileHandler.loadData(this)) {
-            Category myCategory = new Category("Other");
-            MainViewModel.categoryList.add(myCategory);
-            MainViewModel.dateSetting = "This Month";
-            MainViewModel.categorySetting = "";
-        }
-
         model = new ViewModelProvider(this).get(MainViewModel.class);
         model.mainActivity = this;
+
+        dateFilterSpinner = (Spinner) findViewById(R.id.dateFilterSpinner);
+        categoryFilterSpinner = (Spinner) findViewById(R.id.categoryFilterSpinner);
+        model.transactionList = new ArrayList<>();
+        model.categoryList = new ArrayList<>();
+
+        //Uncomment to delete data on startup
+        FileHandler.deleteData(this);
+
+        //Initialize for if data doesn't load
+
+        if (!FileHandler.loadData(this)) {
+            Category myCategory = new Category("Other", 100);
+            model.categoryList.add(myCategory);
+            model.dateSetting = "This Month";
+            model.categorySetting = "";
+        }
         model.loadTransactions();
     }
 
@@ -84,14 +83,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             try {
                 Date transactionDate = format.parse(transactionDateEdit.getText().toString());
                 Category transactionCategory = null;
-                for (int i = 0; i < MainViewModel.categoryList.size(); i++) {
-                    if (transactionCategorySpinner.getSelectedItem().toString().equals(MainViewModel.categoryList.get(i).getName())) {
-                        transactionCategory = MainViewModel.categoryList.get(i);
+                for (int i = 0; i < model.categoryList.size(); i++) {
+                    if (transactionCategorySpinner.getSelectedItem().toString().equals(model.categoryList.get(i).getName())) {
+                        transactionCategory = model.categoryList.get(i);
                         break;
                     }
                 }
                 Transaction newTransaction = new Transaction(Double.valueOf(transactionAmountEdit.getText().toString()), transactionDate, transactionCategory, transactionNameEdit.getText().toString());
-                MainViewModel.transactionList.add(newTransaction);
+                model.transactionList.add(newTransaction);
                 FileHandler.saveData(this);
                 model.loadTransactions();
                 createTransactionLayout.setVisibility(View.INVISIBLE);
@@ -111,8 +110,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
         else {
             EditText categoryNameEdit = (EditText) findViewById(R.id.categoryNameEdit);
-            Category newCategory = new Category(categoryNameEdit.getText().toString());
-            MainViewModel.categoryList.add(newCategory);
+            EditText categoryBudgetEdit = (EditText) findViewById(R.id.categoryBudgetEdit);
+            Category newCategory = new Category(categoryNameEdit.getText().toString(), Double.valueOf(categoryBudgetEdit.getText().toString()));
+            model.categoryList.add(newCategory);
             FileHandler.saveData(this);
             model.loadTransactions();
             createCategoryLayout.setVisibility(View.INVISIBLE);
@@ -135,9 +135,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             try {
                 Date transactionDate = format.parse(transactionDateEdit.getText().toString());
                 Category transactionCategory = null;
-                for (int i = 0; i < MainViewModel.categoryList.size(); i++) {
-                    if (transactionCategorySpinner.getSelectedItem().toString().equals(MainViewModel.categoryList.get(i).getName())) {
-                        transactionCategory = MainViewModel.categoryList.get(i);
+                for (int i = 0; i < model.categoryList.size(); i++) {
+                    if (transactionCategorySpinner.getSelectedItem().toString().equals(model.categoryList.get(i).getName())) {
+                        transactionCategory = model.categoryList.get(i);
                         break;
                     }
                 }
@@ -158,9 +158,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     //Deletes a transaction
     public void deleteTransaction(View view) {
-        MainViewModel.transactionList.remove(view.getTag());
+        model.transactionList.remove(view.getTag());
         ConstraintLayout editTransactionLayout = (ConstraintLayout) findViewById(R.id.editTransactionLayout);
         editTransactionLayout.setVisibility(View.INVISIBLE);
+        FileHandler.saveData(this);
         model.loadTransactions();
     }
 
@@ -172,6 +173,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public void emptyTransactionDisplay() {
         TableLayout transactionLayout = (TableLayout) findViewById(R.id.transactionLayout);
         transactionLayout.removeAllViews();
+    }
+    //Empties the categories box
+    public void emptyCategoryDisplay() {
+        LinearLayout categoryLayout = (LinearLayout) findViewById(R.id.categoryLayout);
+        categoryLayout.removeAllViews();
     }
 
     //Toggles the settings menu and initializes views
@@ -190,13 +196,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             dateFilterSpinner.setAdapter(adapter);
             int dateFilterPosition = 0;
-            if (MainViewModel.dateSetting.equals("This and Last Week")) {
+            if (model.dateSetting.equals("This and Last Week")) {
                 dateFilterPosition = 1;
             }
-            else if (MainViewModel.dateSetting.equals("This Month")) {
+            else if (model.dateSetting.equals("This Month")) {
                 dateFilterPosition = 2;
             }
-            else if (MainViewModel.dateSetting.equals("This and Last Month")) {
+            else if (model.dateSetting.equals("This and Last Month")) {
                 dateFilterPosition = 3;
             }
             dateFilterSpinner.setSelection(dateFilterPosition, false);
@@ -204,18 +210,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             ArrayList<String> adapterCategoryList = new ArrayList<>();
             adapterCategoryList.add("All Categories");
-            for (int i = 0; i < MainViewModel.categoryList.size(); i++) {
-                adapterCategoryList.add(MainViewModel.categoryList.get(i).getName());
+            for (int i = 0; i < model.categoryList.size(); i++) {
+                adapterCategoryList.add(model.categoryList.get(i).getName());
             }
             ArrayAdapter<String> adapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, adapterCategoryList);
             adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             categoryFilterSpinner.setAdapter(adapter2);
-            if (adapter2.getPosition(MainViewModel.categorySetting) == -1) {
+            if (adapter2.getPosition(model.categorySetting) == -1) {
                 categoryFilterSpinner.setSelection(0, false);
-                MainViewModel.categorySetting = "";
+                model.categorySetting = "";
             }
             else {
-                categoryFilterSpinner.setSelection(adapter2.getPosition(MainViewModel.categorySetting), false);
+                categoryFilterSpinner.setSelection(adapter2.getPosition(model.categorySetting), false);
             }
             categoryFilterSpinner.setOnItemSelectedListener(this);
         }
@@ -252,8 +258,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         transactionDateEdit.setText("");
 
         ArrayList<String> adapterCategoryList = new ArrayList<>();
-        for (int i = 0; i < MainViewModel.categoryList.size(); i++) {
-            adapterCategoryList.add(MainViewModel.categoryList.get(i).getName());
+        for (int i = 0; i < model.categoryList.size(); i++) {
+            adapterCategoryList.add(model.categoryList.get(i).getName());
         }
         ArrayAdapter<String> adapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, adapterCategoryList);
         adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -271,10 +277,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         toggleSettings(view);
         Button createCategoryButton = (Button) findViewById(R.id.createCategoryButton);
         EditText categoryNameEdit = (EditText) findViewById(R.id.categoryNameEdit);
+        EditText categoryBudgetEdit = (EditText) findViewById(R.id.categoryBudgetEdit);
         categoryNameEdit.setText("Enter Name");
+        categoryBudgetEdit.setText("0");
         createCategoryButton.setText("Cancel");
         ArrayList<String> categoryNames = new ArrayList<>();
-        for (Category c : MainViewModel.categoryList) {
+        for (Category c : model.categoryList) {
             categoryNames.add(c.getName());
         }
         TextWatcher categoryNameWatcher = new TextWatcher() {
@@ -333,8 +341,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         transactionDateEdit.setText((transaction.getDate().getMonth() + 1) + "-" + transaction.getDate().getDate() + "-" + (transaction.getDate().getYear() + 1900));
 
         ArrayList<String> adapterCategoryList = new ArrayList<>();
-        for (int i = 0; i < MainViewModel.categoryList.size(); i++) {
-            adapterCategoryList.add(MainViewModel.categoryList.get(i).getName());
+        for (int i = 0; i < model.categoryList.size(); i++) {
+            adapterCategoryList.add(model.categoryList.get(i).getName());
         }
         ArrayAdapter<String> adapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, adapterCategoryList);
         adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -349,17 +357,25 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     //Adds the category to the displayed list
     public void displayCategory(Category category) {
-        TableLayout transactionLayout = (TableLayout) findViewById(R.id.transactionLayout);
+        LinearLayout categoryLayout = (LinearLayout) findViewById(R.id.categoryLayout);
+
+        LinearLayout mainLayout = new LinearLayout(this);
+        LinearLayout.LayoutParams mainParams = new TableRow.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        mainParams.bottomMargin = 16;
+        mainLayout.setLayoutParams(mainParams);
+        mainLayout.setBackgroundColor(Color.parseColor("#101112"));
+        categoryLayout.addView(mainLayout);
 
         TableRow row0 = new TableRow(this);
         TableRow.LayoutParams row0Params = new TableRow.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         row0.setLayoutParams(row0Params);
-        transactionLayout.addView(row0);
+        mainLayout.addView(row0);
 
         TextView categoryNameView = new TextView(this);
         TableRow.LayoutParams categoryNameViewParams = new TableRow.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT);
         categoryNameViewParams.column = 0;
         categoryNameViewParams.weight = 1;
+        categoryNameViewParams.setMarginStart(8);
         categoryNameView.setLayoutParams(categoryNameViewParams);
         Typeface typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL);
         categoryNameView.setTypeface(typeface);
@@ -374,14 +390,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         TableRow.LayoutParams categoryAmountViewParams = new TableRow.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT);
         categoryAmountViewParams.column = 1;
         categoryAmountViewParams.weight = 1;
+        categoryAmountViewParams.setMarginStart(8);
         categoryAmountView.setLayoutParams(categoryAmountViewParams);
         categoryAmountView.setTypeface(typeface);
         categoryAmountView.setMaxLines(1);
         if (category.getAmount() < 0) {
-            categoryAmountView.setText("-$" + moneyFormat.format((category.getAmount() * -1)));
+            categoryAmountView.setText("-$" + moneyFormat.format((category.getAmount() * -1)) + "/" + moneyFormat.format(category.getBudget()));
         }
         else {
-            categoryAmountView.setText("$" + moneyFormat.format(category.getAmount()));
+            categoryAmountView.setText("+$" + moneyFormat.format(category.getAmount()) + "/" + moneyFormat.format(category.getBudget()));
         }
         categoryAmountView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
         categoryAmountView.setTextColor(Color.WHITE);
@@ -402,6 +419,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         TableRow.LayoutParams transactionNameViewParams = new TableRow.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT);
         transactionNameViewParams.column = 0;
         transactionNameViewParams.weight = 1;
+        transactionNameViewParams.setMarginStart(8);
+        transactionNameViewParams.topMargin = 8;
         transactionNameView.setLayoutParams(transactionNameViewParams);
         Typeface typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL);
         transactionNameView.setTypeface(typeface);
@@ -437,6 +456,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         TableRow.LayoutParams transactionAmountViewParams = new TableRow.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT);
         transactionAmountViewParams.column = 1;
         transactionAmountViewParams.weight = 1;
+        transactionAmountViewParams.setMarginStart(8);
         transactionAmountView.setLayoutParams(transactionAmountViewParams);
         Typeface typeface2 = Typeface.create("sans-serif-light", Typeface.NORMAL);
         transactionAmountView.setTypeface(typeface2);
@@ -445,7 +465,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             transactionAmountView.setText("-$" + moneyFormat.format(transaction.getAmount() * -1));
         }
         else {
-            transactionAmountView.setText("$" + moneyFormat.format(transaction.getAmount()));
+            transactionAmountView.setText("+$" + moneyFormat.format(transaction.getAmount()));
         }
         transactionAmountView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
         transactionAmountView.setTextColor(Color.WHITE);
@@ -455,6 +475,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         TableRow.LayoutParams transactionCategoryViewParams = new TableRow.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT);
         transactionCategoryViewParams.column = 2;
         transactionCategoryViewParams.weight = 1;
+        transactionCategoryViewParams.setMarginStart(8);
         if (transaction.getCategory() != null) {
             TextView transactionCategoryView = new TextView(this);
             transactionCategoryView.setLayoutParams(transactionCategoryViewParams);
@@ -488,17 +509,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         if (parent.getId() == R.id.dateFilterSpinner) {
-            MainViewModel.dateSetting = parent.getItemAtPosition(position).toString();
-            model.loadTransactions(MainViewModel.dateSetting, MainViewModel.categorySetting);
+            model.dateSetting = parent.getItemAtPosition(position).toString();
+            model.loadTransactions(model.dateSetting, model.categorySetting);
         }
         else if (parent.getId() == R.id.categoryFilterSpinner) {
             if (parent.getItemAtPosition(position).toString().equals("All Categories")) {
-                MainViewModel.categorySetting = "";
+                model.categorySetting = "";
             }
             else {
-                MainViewModel.categorySetting = parent.getItemAtPosition(position).toString();
+                model.categorySetting = parent.getItemAtPosition(position).toString();
             }
-            model.loadTransactions(MainViewModel.dateSetting, MainViewModel.categorySetting);
+            model.loadTransactions(model.dateSetting, model.categorySetting);
         }
         FileHandler.saveData(this);
     }
