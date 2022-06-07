@@ -156,10 +156,38 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
+    //Edits a category
+    public void editCategory(View view) {
+        Button createButton = (Button) view;
+        ConstraintLayout createCategoryLayout = (ConstraintLayout) findViewById(R.id.editCategoryLayout);
+        if (createButton.getText().equals("Cancel")) {
+            createCategoryLayout.setVisibility(View.INVISIBLE);
+        }
+        else {
+            EditText categoryNameEdit = (EditText) findViewById(R.id.editCategoryNameEdit);
+            EditText categoryBudgetEdit = (EditText) findViewById(R.id.editCategoryBudgetEdit);
+            Category category = (Category)(view.getTag());
+            category.setName(categoryNameEdit.getText().toString());
+            category.setBudget(Double.valueOf(categoryBudgetEdit.getText().toString()));
+            FileHandler.saveData(this);
+            model.loadTransactions();
+            createCategoryLayout.setVisibility(View.INVISIBLE);
+        }
+    }
+
     //Deletes a transaction
     public void deleteTransaction(View view) {
         model.transactionList.remove(view.getTag());
         ConstraintLayout editTransactionLayout = (ConstraintLayout) findViewById(R.id.editTransactionLayout);
+        editTransactionLayout.setVisibility(View.INVISIBLE);
+        FileHandler.saveData(this);
+        model.loadTransactions();
+    }
+
+    //Deletes a category
+    public void deleteCategory(View view) {
+        model.categoryList.remove(view.getTag());
+        ConstraintLayout editTransactionLayout = (ConstraintLayout) findViewById(R.id.editCategoryLayout);
         editTransactionLayout.setVisibility(View.INVISIBLE);
         FileHandler.saveData(this);
         model.loadTransactions();
@@ -355,6 +383,44 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         newTransactionLayout.setVisibility(View.VISIBLE);
     }
 
+    //Toggles the edit category menu
+    public void toggleEditCategory(View view) {
+        Category category = (Category)(view.getTag());
+        Button createCategoryButton = (Button) findViewById(R.id.editCategoryButton);
+        createCategoryButton.setTag(category);
+        Button deleteCategoryButton = (Button) findViewById(R.id.deleteCategoryButton);
+        deleteCategoryButton.setTag(category);
+        EditText categoryNameEdit = (EditText) findViewById(R.id.editCategoryNameEdit);
+        EditText categoryBudgetEdit = (EditText) findViewById(R.id.editCategoryBudgetEdit);
+        categoryNameEdit.setText(category.getName());
+        categoryBudgetEdit.setText(String.valueOf(category.getBudget()));
+        createCategoryButton.setText("Save");
+        ArrayList<String> categoryNames = new ArrayList<>();
+        for (Category c : model.categoryList) {
+            categoryNames.add(c.getName());
+        }
+        TextWatcher categoryNameWatcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) { }
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                if (categoryNames.indexOf(categoryNameEdit.getText().toString()) >= 0 || categoryNameEdit.getText().toString().equals("Unnamed Category") || categoryNameEdit.getText().toString().equals("Enter Name") || categoryNameEdit.getText().toString().equals("") || categoryNameEdit.getText().toString().equals("All Categories")) {
+                    createCategoryButton.setText("Cancel");
+                }
+                else {
+                    createCategoryButton.setText("Save");
+                }
+            }
+            @Override
+            public void afterTextChanged(Editable editable) {
+            }
+        };
+        categoryNameEdit.addTextChangedListener(categoryNameWatcher);
+
+        ConstraintLayout newCategoryLayout = (ConstraintLayout) findViewById(R.id.editCategoryLayout);
+        newCategoryLayout.setVisibility(View.VISIBLE);
+    }
+
     //Adds the category to the displayed list
     public void displayCategory(Category category) {
         LinearLayout categoryLayout = (LinearLayout) findViewById(R.id.categoryLayout);
@@ -382,6 +448,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         categoryNameView.setMaxLines(1);
         categoryNameView.setText(category.getName());
         categoryNameView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
+        if (category.getName() != "Other") {
+            categoryNameView.setTag(category);
+            View.OnClickListener categoryOnClickListener = new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    toggleEditCategory(view);
+                }
+            };
+            categoryNameView.setOnClickListener(categoryOnClickListener);
+            categoryNameView.setClickable(true);
+        }
         categoryNameView.setTextColor(Color.WHITE);
         categoryNameView.setTextSize(20);
         row0.addView(categoryNameView);

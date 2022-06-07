@@ -1,6 +1,6 @@
 package com.AlexJMoore03.transactions.data;
 
-public class Category {
+public class Category implements Comparable<Category> {
     private String name;
     private double amount;
     private double budget;
@@ -26,4 +26,9 @@ public class Category {
     public void setAmount(double amount_) { amount = amount_; }
 
     public void setBudget(double budget_) { budget = budget_; }
+
+    @Override
+    public int compareTo(Category other) {
+        return name.compareTo(other.name);
+    }
 }

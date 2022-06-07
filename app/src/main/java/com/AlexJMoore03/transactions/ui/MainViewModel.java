@@ -22,6 +22,7 @@ public class MainViewModel extends ViewModel {
     //Loads categories and displays the total spent on each one
     public void loadCategories() {
         mainActivity.emptyCategoryDisplay();
+        Utilities.sortCategories(categoryList);
         for (int i = 0; i < categoryList.size(); i++) {
             mainActivity.displayCategory(categoryList.get(i));
         }

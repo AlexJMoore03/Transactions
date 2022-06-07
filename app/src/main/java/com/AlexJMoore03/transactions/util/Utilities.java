@@ -1,5 +1,6 @@
 package com.AlexJMoore03.transactions.util;
 
+import com.AlexJMoore03.transactions.data.Category;
 import com.AlexJMoore03.transactions.data.Transaction;
 
 import java.util.ArrayList;
@@ -10,6 +11,11 @@ import java.util.Date;
 public class Utilities {
     //Sorts transactions by date
     public static void sortTransactions(ArrayList<Transaction> listToSort) {
+        Collections.sort(listToSort);
+    }
+
+    //Sorts categories by name
+    public static void sortCategories(ArrayList<Category> listToSort) {
         Collections.sort(listToSort);
     }
 
